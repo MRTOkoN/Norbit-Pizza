@@ -90,7 +90,7 @@ flutter:
 
   # Application custom fonts and assets
   assets:
-    - assets/images/logo.png
+    - assets/images/
 
   fonts:
     - family: Norbit
