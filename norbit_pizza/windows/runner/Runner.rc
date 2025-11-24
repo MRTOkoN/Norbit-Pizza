@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "norbit_pizza" "\0"
+            VALUE "CompanyName", "NORBIT" "\0"
+            VALUE "FileDescription", "НОРБИТ pizza" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "norbit_pizza" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "norbit_pizza.exe" "\0"
-            VALUE "ProductName", "norbit_pizza" "\0"
+            VALUE "InternalName", "NORBIT_pizza" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 NORBIT. All rights reserved." "\0"
+            VALUE "OriginalFilename", "NORBIT_pizza.exe" "\0"
+            VALUE "ProductName", "НОРБИТ pizza" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
