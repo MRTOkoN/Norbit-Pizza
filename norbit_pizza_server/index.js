@@ -70,10 +70,6 @@ connection.query(createImagesTable, (err) => {
 });
 
 
-// ◦ Запрос на получение товаров
-
-
-
 // ◦ Метод загрузки изображения в бд
 // ◦ Метод запроса изображения из бд
 // ◦ Метод удаления изображения из бд
@@ -89,6 +85,32 @@ app.get('/', (req, res) => {
     res.json({message: 'Norbit pizza сервак запущен!'});
 });
 
+// ◦ Запрос на получение ВСЕХ пицц (для главной страницы)
+app.get('/products', (req, res) => {
+    connection.query('SELECT * FROM products', (err, results) => {
+        if (err) {
+            res.status(500).json({error: err.message});
+            return;
+        }
+        res.json(results);
+    });
+});
+
+// Запрос на получение пиццы по ID (в корзину)
+app.get('/products/:id', (req, res) => {
+    const productId = req.params.id;
+    connection.query('SELECT * FROM products WHERE id = ?', [productId], (err, results) => {
+        if (err) {
+            res.status(500).json({error: err.message});
+            return;
+        }
+        if (results.length === 0) {
+            res.status(404).json({error: 'Пицца не найдена'});
+            return;
+        }
+        res.json(results[0]);
+    });
+});
 
 // ◦ Запрос на получение изображения
 
