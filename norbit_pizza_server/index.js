@@ -1,15 +1,10 @@
 // TODO: Реализовать функционал согласно ТЗ:
 
 
-const multer = require('multer');
-
 const express = require('express');
 const mysql = require('mysql2');
 const app = express();
 const PORT = 3000;
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
 
 //Midlleware
 app.use(express.json())
@@ -76,74 +71,8 @@ connection.query(createImagesTable, (err) => {
 
 
 // ◦ Метод загрузки изображения в бд
-app.post('/images/upload', upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-
-    const { originalname, mimetype, buffer } = req.file;
-
-    connection.query(
-        'INSERT INTO images (filename, mime_type, image_data) VALUES (?, ?, ?)',
-        [originalname, mimetype, buffer],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: 'Ошибка сохранения изображения', details: err });
-            }
-
-            res.json({
-                message: 'Изображение сохранено',
-                image_id: result.insertId
-            });
-        }
-    );
-});
-
 // ◦ Метод запроса изображения из бд
-app.get('/images/:id', (req, res) => {
-    const imageId = req.params.id;
-
-    connection.query(
-        'SELECT * FROM images WHERE id = ?',
-        [imageId],
-        (err, results) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (results.length === 0) {
-                return res.status(404).json({ error: 'Изображение не найдено' });
-            }
-
-            const image = results[0];
-
-            res.setHeader('Content-Type', image.mime_type);
-            res.send(image.image_data);
-        }
-    );
-});
-
 // ◦ Метод удаления изображения из бд
-app.delete('/images/:id', (req, res) => {
-    const imageId = req.params.id;
-
-    connection.query(
-        'DELETE FROM images WHERE id = ?',
-        [imageId],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Изображение не найдено' });
-            }
-
-            res.json({ message: 'Изображение удалено' });
-        }
-    );
-});
-
 // ◦ Метод добавления товара в бд
 // ◦ Метод запроса товара из бд
 // ◦ Метод удаления товара из бд
