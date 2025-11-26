@@ -1,15 +1,10 @@
 // TODO: Реализовать функционал согласно ТЗ:
 
 
-const multer = require('multer');
-
 const express = require('express');
 const mysql = require('mysql2');
 const app = express();
 const PORT = 3000;
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
 
 //Midlleware
 app.use(express.json())
@@ -76,74 +71,8 @@ connection.query(createImagesTable, (err) => {
 
 
 // ◦ Метод загрузки изображения в бд
-app.post('/images/upload', upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-
-    const { originalname, mimetype, buffer } = req.file;
-
-    connection.query(
-        'INSERT INTO images (filename, mime_type, image_data) VALUES (?, ?, ?)',
-        [originalname, mimetype, buffer],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: 'Ошибка сохранения изображения', details: err });
-            }
-
-            res.json({
-                message: 'Изображение сохранено',
-                image_id: result.insertId
-            });
-        }
-    );
-});
-
 // ◦ Метод запроса изображения из бд
-app.get('/images/:id', (req, res) => {
-    const imageId = req.params.id;
-
-    connection.query(
-        'SELECT * FROM images WHERE id = ?',
-        [imageId],
-        (err, results) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (results.length === 0) {
-                return res.status(404).json({ error: 'Изображение не найдено' });
-            }
-
-            const image = results[0];
-
-            res.setHeader('Content-Type', image.mime_type);
-            res.send(image.image_data);
-        }
-    );
-});
-
 // ◦ Метод удаления изображения из бд
-app.delete('/images/:id', (req, res) => {
-    const imageId = req.params.id;
-
-    connection.query(
-        'DELETE FROM images WHERE id = ?',
-        [imageId],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Изображение не найдено' });
-            }
-
-            res.json({ message: 'Изображение удалено' });
-        }
-    );
-});
-
 // ◦ Метод добавления товара в бд
 // ◦ Метод запроса товара из бд
 // ◦ Метод удаления товара из бд
@@ -182,6 +111,77 @@ app.get('/products/:id', (req, res) => {
         res.json(results[0]);
     });
 });
+
+// ◦ Запрос на получение изображения
+
+//Запуск сервера
+app.listen(PORT, () => {
+    console.log(`Сервер запустился на http://localhost:${PORT}`);
+});
+
+// ◦ Метод добавления товара в бд
+app.post('/products', (req, res) => {
+    const { name, price, description, image_id} = req.body;
+
+    // Проверка обязательных полей
+    if (!name || !price) {
+        return res.status(500).json({error: 'Назавание и цена обязательны'});
+    }
+
+    connection.query(
+        'INSERT INTO products (name, price, description, image_id) VALUES (?, ?, ?, ?)',
+        [name, price, description, image_id],
+        (err, results) => {
+            if (err) {
+                res.status(500).json({error: err.message});
+                return;
+            }
+            res.json({
+                id: results.insertId,
+                message: 'Товар успешно добавлен',
+                product: { id: results.insertId, name, price, description, image_id}
+            })
+        }
+    );
+});
+
+// Метод удаления товара из БД
+app.delete('/products/:id', (req, res) => {
+    const productId = req.params.id;connection.query('DELETE FROM products WHERE id = ?', [productId], (err, results) => {
+        if (err) {
+            res.status(500).json({error: err.message});
+            return;
+        }
+        if (results.affectedRows === 0 ) {
+            res.status(404).json({error: 'Товар не найден'});
+            return;
+        }
+        res.json({message: 'Товар успешно добавлен в БД'});
+    });
+});
+
+// Метод обновления товара в БД
+app.put('/products/:id', (req, res) => {
+    const productId = req.params.id;
+    const {name, price, description, image_id} = req.body;
+
+    connection.query(
+        'UPDATE products SET name = ?, price = ?, description = ?, image_id = ? WHERE id = ?',
+        [name, price, description, image_id, productId],
+        (err, results) => {
+            if (err) {
+                res.status(500).json({error: err.message});
+                return;
+            }
+            if (results.affectedRows === 0) {
+                res.status(404).json({error: 'Товар не найден'});
+                return;
+            }
+            res.json({message: 'Товар успешно обновлён'});
+        }
+    )
+})
+
 
 // ◦ Запрос на получение изображения
 
