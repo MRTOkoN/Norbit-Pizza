@@ -192,6 +192,7 @@ class _MyHomePageState extends State<MyHomePage> {
     {
       'title': 'Маргарита',
       'desc': 'Томатный соус, моцарелла, базилик',
+      'ingredients': 'томатный соус, моцарелла, базилик',
       'price': '499 ₽',
       'size': '30 см',
       'category': 'Классические',
@@ -200,6 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
     {
       'title': 'Пепперони',
       'desc': 'Пепперони, моцарелла, томаты',
+      'ingredients': 'пепперони, моцарелла, томаты, орегано',
       'price': '599 ₽',
       'size': '32 см',
       'category': 'Мясные',
@@ -208,6 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
     {
       'title': 'Вегги',
       'desc': 'Овощи гриль, моцарелла, руккола',
+      'ingredients': 'баклажан, цуккини, перец, моцарелла, руккола',
       'price': '549 ₽',
       'size': '30 см',
       'category': 'Вегетарианские',
@@ -216,6 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
     {
       'title': '4 Сыра',
       'desc': 'Моцарелла, пармезан, горгонзола, эмменталь',
+      'ingredients': 'моцарелла, пармезан, горгонзола, эмменталь',
       'price': '699 ₽',
       'size': '33 см',
       'category': 'Премиум',
@@ -234,6 +238,121 @@ class _MyHomePageState extends State<MyHomePage> {
     if (context != null) {
       Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
     }
+  }
+
+  void _showProductDetail(Map<String, String> item) {
+    final ingredients = (item['ingredients'] ?? '').split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final sw = MediaQuery.of(dialogContext).size.width;
+        final sh = MediaQuery.of(dialogContext).size.height;
+        final dialogWidth = sw > 900 ? 900.0 : sw * 0.95;
+        final dialogHeight = sh * 0.8;
+
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogHeight),
+            child: Row(
+              children: [
+                // Left: image full height
+                Flexible(
+                  flex: 5,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+                    child: Image.asset(
+                      item['image']!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.local_pizza, size: 48, color: Colors.deepPurple)),
+                    ),
+                  ),
+                ),
+                // Right: details
+                Flexible(
+                  flex: 6,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(item['title'] ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                                child: Text(item['category'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(item['desc'] ?? '', style: TextStyle(color: Colors.grey.shade700)),
+                          const SizedBox(height: 16),
+                          const Text('Ингредиенты', style: TextStyle(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: ingredients.map((ing) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+                                child: Text(ing, style: const TextStyle(color: Colors.black87)),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                          // Labels (grey)
+                          Row(
+                            children: [
+                              Expanded(child: Text('Размер', style: TextStyle(color: Colors.grey.shade600))),
+                              Expanded(child: Align(alignment: Alignment.centerRight, child: Text('Цена', style: TextStyle(color: Colors.grey.shade600)))),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          // Values (black)
+                          Row(
+                            children: [
+                              Expanded(child: Text(item['size'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black))),
+                              Expanded(child: Align(alignment: Alignment.centerRight, child: Text(item['price'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.black)))),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Добавлено: ${item['title']}')));
+                              },
+                              icon: const Icon(Icons.shopping_cart, color: Colors.white),
+                              label: Text('Добавить в корзину за ${item['price'] ?? ''}', style: const TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 12)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          Text('ℹ️ Все пиццы готовятся из свежих ингредиентов в дровяной печи. Среднее время приготовления: 15-20 минут.', style: TextStyle(color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -430,7 +549,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       itemBuilder: (context, index) {
                         final item = displayed[index];
-                        return ProductCard(item: item);
+                        return GestureDetector(
+                          onTap: () => _showProductDetail(item),
+                          child: ProductCard(item: item),
+                        );
                       },
                     );
                   }),
