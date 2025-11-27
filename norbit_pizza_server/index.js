@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
+const cors = require('cors');
 const multer = require('multer');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -11,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
+app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
@@ -47,10 +49,49 @@ async function initDb() {
             FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE SET NULL
         )`;
 
+    const createOrdersTable = `
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            customer_name VARCHAR(255),
+            phone VARCHAR(50),
+            address TEXT,
+            items LONGTEXT,
+            total DECIMAL(10,2) NOT NULL,
+            order_number VARCHAR(8) NOT NULL,
+            UNIQUE KEY unique_order_number (order_number),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`;
+
     const conn = await pool.getConnection();
     try {
         await conn.query(createImagesTable);
         await conn.query(createProductsTable);
+            await conn.query(createOrdersTable);
+        // Ensure `order_number` column and unique index exist (in case table existed prior to adding it)
+        try {
+            const dbName = process.env.DB_NAME || 'norbit_pizza';
+            const [colRows] = await conn.query(
+                'SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+                [dbName, 'orders', 'order_number']
+            );
+            const colCount = (colRows && colRows[0] && colRows[0].cnt) || 0;
+            if (colCount === 0) {
+                await conn.query("ALTER TABLE orders ADD COLUMN order_number VARCHAR(8) NOT NULL");
+            }
+
+            // Check if unique index exists; if not, create it
+            const [idxRows] = await conn.query(
+                'SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?',
+                [dbName, 'orders', 'unique_order_number']
+            );
+            const idxCount = (idxRows && idxRows[0] && idxRows[0].cnt) || 0;
+            if (idxCount === 0) {
+                await conn.query('ALTER TABLE orders ADD UNIQUE KEY unique_order_number (order_number)');
+            }
+        } catch (e) {
+            console.warn('DB: Could not ensure order_number column/index:', e.message || e);
+        }
+
         console.log('DB: Tables ready');
     } finally {
         conn.release();
@@ -185,4 +226,55 @@ process.on('SIGINT', async () => {
     console.log('Shutting down...');
     try { await pool.end(); } catch (e) { console.error(e); }
     process.exit(0);
+});
+
+// Create order
+app.post('/orders', async (req, res) => {
+    try {
+        const { customer_name = null, phone = null, address = null, items, total } = req.body;
+        if (!items || !Array.isArray(items) || total == null) return res.status(400).json({ error: 'Items (array) and total are required' });
+
+        const itemsJson = JSON.stringify(items);
+
+        // Helper to generate code: one uppercase letter + 3 digits, e.g. A123
+        function genOrderNumber() {
+            const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const digits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            return (letter + digits).toUpperCase();
+        }
+
+        const conn = await pool.getConnection();
+        try {
+            // Try inserting with a generated order number, retry on duplicate
+            let orderNumber = genOrderNumber();
+            let attempts = 0;
+            let insertId = null;
+            while (attempts < 6) {
+                try {
+                    const [result] = await conn.query(
+                        'INSERT INTO orders (customer_name, phone, address, items, total, order_number) VALUES (?, ?, ?, ?, ?, ?)',
+                        [customer_name, phone, address, itemsJson, total, orderNumber]
+                    );
+                    insertId = result.insertId;
+                    break;
+                } catch (e) {
+                    // Duplicate order number? MySQL duplicate entry error code is ER_DUP_ENTRY
+                    if (e && e.code === 'ER_DUP_ENTRY') {
+                        attempts++;
+                        orderNumber = genOrderNumber();
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+
+            if (insertId == null) return res.status(500).json({ error: 'Не удалось сгенерировать уникальный номер заказа' });
+
+            res.status(201).json({ id: insertId, order_number: orderNumber, message: 'Заказ принят' });
+        } finally {
+            conn.release();
+        }
+    } catch (err) {
+        return handleError(res, err);
+    }
 });
