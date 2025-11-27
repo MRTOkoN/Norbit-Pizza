@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:80'
+    restart: unless-stopped
+    environment:
+      - FLUTTER_BUILD_MODE=release
+    # Optional: increase process output visibility
+    shm_size: '256mb'
