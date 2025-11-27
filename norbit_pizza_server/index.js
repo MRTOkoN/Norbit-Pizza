@@ -1,15 +1,11 @@
-// TODO: Реализовать функционал согласно ТЗ:
-
-
 const express = require('express');
 const mysql = require('mysql2');
 const app = express();
 const PORT = 3000;
 
-//Midlleware
+// Midlleware
 app.use(express.json())
 
-// ◦ Подключение к MySQL
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -17,13 +13,12 @@ const connection = mysql.createConnection({
     database: 'norbit_pizza'
 });
 
-// Проверка подключения
 connection.connect((err) => {
     if (err) {
-        console.error('Ошибка подключения к MySql:', err.message);
+        console.error('Connection to MySQL error:', err.message);
         return;
     }
-    console.log('Успешное подключение к MySql database: norbit_pizza');
+    console.log('Conection to MySQL database successful: norbit_pizza');
 });
 
 
@@ -38,7 +33,7 @@ const createImagesTable =  `
   )
 `;
 
-// ◦ Структура таблицы товаров с внешним ключом
+// Структура таблицы товаров с внешним ключом
 const createProductsTable = `
   CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -54,21 +49,20 @@ const createProductsTable = `
 // Создаём таблицы последовательно
 connection.query(createImagesTable, (err) => {
     if (err) {
-        console.error('Ошибка создания таблицы images:', err);
+        console.error('DB: Image collection create error:', err);
         return;
     }
-    console.log('Таблица images готова');
+    console.log('DB: Image collection created successfully');
 
-    connection.query(createProductsTable, (err) => {
-        if (err) {
-            console.error('Ошибка создания таблицы products:', err);
-            return;
-        }
-        console.log('Таблица products готова');
-        console.log('Обе таблицы успешно создались');
-    });
 });
 
+connection.query(createProductsTable, (err) => {
+    if (err) {
+        console.error('DB: Product collection create error:', err);
+        return;
+    }
+    console.log('DB: Product collection created successfully');
+});
 
 // ◦ Метод загрузки изображения в бд
 // ◦ Метод запроса изображения из бд
@@ -78,48 +72,7 @@ connection.query(createImagesTable, (err) => {
 // ◦ Метод удаления товара из бд
 // ◦ Синхронизация товаров с редиса
 
-// ◦ http сервер
-
-//Базовый роут для проверки работы сервера
-app.get('/', (req, res) => {
-    res.json({message: 'Norbit pizza сервак запущен!'});
-});
-
-// ◦ Запрос на получение ВСЕХ пицц (для главной страницы)
-app.get('/products', (req, res) => {
-    connection.query('SELECT * FROM products', (err, results) => {
-        if (err) {
-            res.status(500).json({error: err.message});
-            return;
-        }
-        res.json(results);
-    });
-});
-
-// Запрос на получение пиццы по ID (в корзину)
-app.get('/products/:id', (req, res) => {
-    const productId = req.params.id;
-    connection.query('SELECT * FROM products WHERE id = ?', [productId], (err, results) => {
-        if (err) {
-            res.status(500).json({error: err.message});
-            return;
-        }
-        if (results.length === 0) {
-            res.status(404).json({error: 'Пицца не найдена'});
-            return;
-        }
-        res.json(results[0]);
-    });
-});
-
-// ◦ Запрос на получение изображения
-
-//Запуск сервера
-app.listen(PORT, () => {
-    console.log(`Сервер запустился на http://localhost:${PORT}`);
-});
-
-// ◦ Метод добавления товара в бд
+// Запрос на получение ВСЕХ пицц (для главной страницы)
 app.post('/products', (req, res) => {
     const { name, price, description, image_id} = req.body;
 
@@ -182,10 +135,6 @@ app.put('/products/:id', (req, res) => {
     )
 })
 
-
-// ◦ Запрос на получение изображения
-
-//Запуск сервера
 app.listen(PORT, () => {
     console.log(`Сервер запустился на http://localhost:${PORT}`);
 });
