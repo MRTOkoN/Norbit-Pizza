@@ -75,25 +75,10 @@ app.post('/images/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'Файл не загружен' });
     }
-
-    const { originalname, mimetype, buffer } = req.file;
-
-    connection.query(
-        'INSERT INTO images (filename, mime_type, image_data) VALUES (?, ?, ?)',
-        [originalname, mimetype, buffer],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: 'Ошибка сохранения изображения', details: err });
-            }
-
-            res.json({
-                message: 'Изображение сохранено',
-                image_id: result.insertId
-            });
-        }
-    );
+    console.log('DB: Product collection created successfully');
 });
 
+// ◦ Метод загрузки изображения в бд
 // ◦ Метод запроса изображения из бд
 app.get('/images/:id', (req, res) => {
     const imageId = req.params.id;
