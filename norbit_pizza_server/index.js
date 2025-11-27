@@ -1,7 +1,69 @@
-// TODO: Реализовать функционал согласно ТЗ:
+const express = require('express');
+const mysql = require('mysql2');
+const app = express();
+const PORT = 3000;
 
-// ◦ Подключение к MySQL
-// ◦ Структура таблицы товаров
+// Midlleware
+app.use(express.json())
+
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'norbit_pizza'
+});
+
+connection.connect((err) => {
+    if (err) {
+        console.error('Connection to MySQL error:', err.message);
+        return;
+    }
+    console.log('Conection to MySQL database successful: norbit_pizza');
+});
+
+
+// Структура таблицы изображений
+const createImagesTable =  `
+  CREATE TABLE IF NOT EXISTS images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100),
+    image_data LONGBLOB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`;
+
+// Структура таблицы товаров с внешним ключом
+const createProductsTable = `
+  CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    description TEXT,
+    image_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE SET NULL
+  )
+`;
+
+// Создаём таблицы последовательно
+connection.query(createImagesTable, (err) => {
+    if (err) {
+        console.error('DB: Image collection create error:', err);
+        return;
+    }
+    console.log('DB: Image collection created successfully');
+
+});
+
+connection.query(createProductsTable, (err) => {
+    if (err) {
+        console.error('DB: Product collection create error:', err);
+        return;
+    }
+    console.log('DB: Product collection created successfully');
+});
+
 // ◦ Метод загрузки изображения в бд
 // ◦ Метод запроса изображения из бд
 // ◦ Метод удаления изображения из бд
@@ -9,6 +71,24 @@
 // ◦ Метод запроса товара из бд
 // ◦ Метод удаления товара из бд
 // ◦ Синхронизация товаров с редиса
-// ◦ http сервер
-// ◦ Запрос на получение товаров
-// ◦ Запрос на получение изображения
+
+// http сервер
+
+app.get('/', (req, res) => {
+    res.json({message: 'Norbit pizza сервак запущен!'});
+});
+
+// Запрос на получение ВСЕХ пицц (для главной страницы)
+app.get('/products', (req, res) => {
+    connection.query('SELECT * FROM products', (err, results) => {
+        if (err) {
+            res.status(500).json({error: err.message});
+            return;
+        }
+        res.json(results);
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`Сервер запустился на http://localhost:${PORT}`);
+});
