@@ -1,24 +1,30 @@
 {
   "name": "norbit-pizza-sv",
   "version": "1.0.0",
-  "description": "Norbit Pizza service NodeJS server",
+  "description": "Norbit Pizza service — Node.js/Express API (products, images, orders) backed by MySQL and Redis",
   "license": "ISC",
   "author": "",
   "type": "commonjs",
   "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "mysql2": "^3.15.3",
-    "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.4.1",
     "morgan": "^1.10.0",
-    "helmet": "^7.0.0"
+    "multer": "^2.0.1",
+    "mysql2": "^3.15.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

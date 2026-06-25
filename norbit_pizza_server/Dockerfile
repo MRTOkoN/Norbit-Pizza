@@ -1,50 +1,31 @@
-# Multi-stage Dockerfile
-# Stage 1: install dependencies
-FROM node:18-alpine AS deps
-WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm ci --silent || npm install --silent
+# syntax=docker/dockerfile:1
 
-# Stage 2: final image
-FROM node:18-alpine
-WORKDIR /usr/src/app
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-COPY . .
+# --- Stage 1: install production dependencies
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
+# --- Stage 2: minimal production runtime
+FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
-EXPOSE 3000
+WORKDIR /app
 
-# Default start command (production). For development override with `npm run dev` in docker-compose or locally.
-CMD ["node", "index.js"]
-FROM node:18-alpine
+# tini = a tiny, valid PID 1 that forwards signals (clean graceful shutdown)
+RUN apk add --no-cache tini
 
-# Create app directory
-WORKDIR /usr/src/app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY index.js ./
+COPY src ./src
 
-# Copy package manifests and install dependencies
-COPY package*.json ./
-RUN npm install --production=false
-
-# Copy source
-COPY . .
+# Run as the built-in unprivileged user
+USER node
 
 EXPOSE 3000
 
-# Default command: use dev script so nodemon works for development; override in production
-CMD ["npm", "run", "dev"]
-FROM node:18-alpine
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-WORKDIR /usr/src/app
-
-# Install dependencies
-COPY package*.json ./
-RUN npm ci --only=production || npm install --only=production
-
-# Copy source
-COPY . .
-
-EXPOSE 3000
-
-ENV NODE_ENV=production
-
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "index.js"]

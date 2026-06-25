@@ -1,0 +1,17 @@
+# Development override - live reload with nodemon and source mounted into the
+# container. Use it together with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+services:
+  app:
+    build:
+      context: .
+      target: deps          # we only need node_modules + npm. Source comes from the mount
+    init: true              # PID 1 init so SIGINT/SIGTERM reach node through sh --> npm --> nodemon
+    environment:
+      NODE_ENV: development
+    command: sh -c "npm ci --include=dev --no-audit --no-fund && npm run dev"
+    volumes:
+      - ./:/app
+      - /app/node_modules   # keep the images node_modules, don't shadow with host

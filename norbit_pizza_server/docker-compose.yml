@@ -4,16 +4,27 @@ services:
     container_name: norbit_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-norbit_pizza}
       MYSQL_USER: ${MYSQL_USER:-norbit}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-norbitpassword}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     volumes:
       - db_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: norbit_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,19 +36,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
+      NODE_ENV: production
+      PORT: 3000
       DB_HOST: db
       DB_USER: ${MYSQL_USER:-norbit}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-norbitpassword}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
       DB_NAME: ${MYSQL_DATABASE:-norbit_pizza}
-      PORT: 3000
-      STORAGE: blob
+      REDIS_URL: redis://redis:6379
+      CACHE_ENABLED: "true"
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
     ports:
       - "3000:3000"
-    volumes:
-      - ./:/usr/src/app:rw
-      - /usr/src/app/node_modules
-    command: npm run dev
 
 volumes:
   db_data:
+  redis_data:
